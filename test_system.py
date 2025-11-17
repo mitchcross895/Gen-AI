@@ -81,7 +81,7 @@ def test_preprocessing():
     """Test data preprocessing"""
     print("\nTesting data preprocessing module...")
     try:
-        from data_preprocessing import TranscriptPreprocessor
+        from data_processor import TranscriptPreprocessor
         preprocessor = TranscriptPreprocessor()
         
         # Test text cleaning
@@ -99,7 +99,7 @@ def test_embeddings():
     """Test embedding generation"""
     print("\nTesting embedding generation...")
     try:
-        from embedding_generation import EmbeddingGenerator
+        from embedding_generator import EmbeddingGenerator
         
         print("  Loading model (this may take a moment)...")
         embed_gen = EmbeddingGenerator()
@@ -121,7 +121,7 @@ def test_summarization():
     """Test summarization"""
     print("\nTesting summarization module...")
     try:
-        from summarization import EpisodeSummarizer
+        from summarizer import EpisodeSummarizer
         
         print("  Loading model (this may take a moment)...")
         summarizer = EpisodeSummarizer(use_api=False)

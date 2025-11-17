@@ -77,7 +77,7 @@ def download_kaggle_dataset(force_redownload=False):
         
         # Download the dataset
         print("\nAttempting to load dataset...")
-        df = kagglehub.load_dataset(
+        df = kagglehub.dataset_load(
             KaggleDatasetAdapter.PANDAS,
             "shuyangli94/this-american-life-podcast-transcriptsalignments",
             "",  # Empty string loads the default file
