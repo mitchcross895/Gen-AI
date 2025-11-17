@@ -15,6 +15,9 @@ faiss-cpu==1.7.4
 nltk==3.8.1
 spacy==3.7.2
 
+# Kaggle dataset support
+kagglehub>=0.2.0
+
 # API access (optional - for using Claude or other LLMs)
 anthropic==0.7.0
 
