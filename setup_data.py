@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-"""
-Updated setup script using kagglehub.dataset_download(), allowing
-user-defined download path, and correctly loading JSON files.
-"""
 
 import os
 import sys
@@ -176,14 +172,55 @@ def download_kaggle_dataset(force_redownload=False):
 
 
 def preprocess_dataset(df):
+    """
+    Preprocess the dataset - with fallback if DataProcessor doesn't exist.
+    """
     print("\n" + "=" * 60)
     print("PREPROCESSING DATASET")
     print("=" * 60)
 
-    from data_processor import DataProcessor
-    processor = DataProcessor()
-
-    processed_df = processor.process_dataframe(df)
+    try:
+        from data_processor import DataProcessor
+        processor = DataProcessor()
+        processed_df = processor.process_dataframe(df)
+    except (ImportError, AttributeError) as e:
+        print(f"Note: DataProcessor not available ({e})")
+        print("Using basic preprocessing instead...")
+        
+        # Basic preprocessing fallback
+        processed_df = df.copy()
+        
+        # Common text field names to look for
+        text_fields = ['text', 'transcript', 'content', 'utterance', 'dialogue']
+        text_col = None
+        for field in text_fields:
+            if field in processed_df.columns:
+                text_col = field
+                break
+        
+        if text_col:
+            # Basic text cleaning
+            processed_df['text'] = processed_df[text_col].astype(str).str.strip()
+            processed_df = processed_df[processed_df['text'].str.len() > 0]
+            print(f"✓ Using '{text_col}' as text field")
+        else:
+            print(f"Available columns: {list(processed_df.columns)}")
+            print("Warning: No standard text field found")
+        
+        # Try to identify other useful fields
+        if 'speaker' not in processed_df.columns:
+            for col in ['speaker_id', 'speaker_name', 'author']:
+                if col in processed_df.columns:
+                    processed_df['speaker'] = processed_df[col]
+                    break
+        
+        if 'episode_title' not in processed_df.columns:
+            for col in ['title', 'episode', 'episode_name']:
+                if col in processed_df.columns:
+                    processed_df['episode_title'] = processed_df[col]
+                    break
+        
+        print(f"✓ Processed {len(processed_df)} records")
 
     output_file = Path("data/processed_transcripts.csv")
     output_file.parent.mkdir(exist_ok=True)
@@ -194,11 +231,12 @@ def preprocess_dataset(df):
 
 
 def generate_embeddings(processed_df, batch_size=32):
+    """
+    Generate embeddings - with fallback if EmbeddingGenerator doesn't exist.
+    """
     print("\n" + "=" * 60)
     print("GENERATING EMBEDDINGS")
     print("=" * 60)
-
-    from embedding_generator import EmbeddingGenerator
 
     cache_file = Path("cache/embeddings.npy")
     texts_file = Path("cache/embedding_texts.pkl")
@@ -208,10 +246,31 @@ def generate_embeddings(processed_df, batch_size=32):
         if response == "y":
             embeddings = np.load(cache_file)
             texts = pd.read_pickle(texts_file)
+            print(f"✓ Loaded cached embeddings: {embeddings.shape}")
             return embeddings, texts
 
-    embed_gen = EmbeddingGenerator()
-    embeddings, texts = embed_gen.generate_embeddings(processed_df, batch_size=batch_size)
+    try:
+        from embedding_generator import EmbeddingGenerator
+        embed_gen = EmbeddingGenerator()
+        embeddings, texts = embed_gen.generate_embeddings(processed_df, batch_size=batch_size)
+    except (ImportError, AttributeError) as e:
+        print(f"Note: EmbeddingGenerator not available ({e})")
+        print("Using basic sentence-transformers instead...")
+        
+        from sentence_transformers import SentenceTransformer
+        
+        # Find text column
+        text_col = 'text' if 'text' in processed_df.columns else processed_df.columns[0]
+        texts = processed_df[text_col].astype(str).tolist()
+        
+        print(f"Loading model...")
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        
+        print(f"Generating embeddings for {len(texts)} texts...")
+        embeddings = model.encode(texts, batch_size=batch_size, show_progress_bar=True)
+        embeddings = np.array(embeddings)
+        
+        print(f"✓ Generated embeddings: {embeddings.shape}")
 
     cache_file.parent.mkdir(exist_ok=True)
     np.save(cache_file, embeddings)
@@ -240,8 +299,6 @@ def create_summary_stats(processed_df, embeddings):
         if "speaker" in processed_df.columns else "N/A",
     }
 
-    import json
-
     stats_file = Path("cache/dataset_stats.json")
 
     json_stats = {}
@@ -257,6 +314,11 @@ def create_summary_stats(processed_df, embeddings):
         json.dump(json_stats, f, indent=2)
 
     print(f"✓ Stats saved: {stats_file}")
+    
+    # Display summary
+    print("\nDataset Summary:")
+    for key, value in json_stats.items():
+        print(f"  {key}: {value}")
 
 
 def run_test_search(processed_df, embeddings, texts):
@@ -264,18 +326,22 @@ def run_test_search(processed_df, embeddings, texts):
     print("RUNNING TEST SEARCH")
     print("=" * 60)
 
-    from semantic_search import SemanticSearch
-    searcher = SemanticSearch(embeddings, texts, processed_df)
+    try:
+        from semantic_search import SemanticSearch
+        searcher = SemanticSearch(embeddings, texts, processed_df)
 
-    test_queries = [
-        "stories about forgiveness",
-        "episodes featuring immigrants",
-        "childhood memories",
-    ]
+        test_queries = [
+            "stories about forgiveness",
+            "episodes featuring immigrants",
+            "childhood memories",
+        ]
 
-    for q in test_queries:
-        results = searcher.search(q, top_k=3)
-        print(f"- Query '{q}' → {len(results)} results")
+        for q in test_queries:
+            results = searcher.search(q, top_k=3)
+            print(f"✓ Query '{q}' → {len(results)} results")
+    except (ImportError, AttributeError) as e:
+        print(f"Note: SemanticSearch not available ({e})")
+        print("Skipping test search - you can implement this later")
 
 
 def main():
@@ -295,6 +361,7 @@ def main():
             print("✗ No cached dataset found.")
             sys.exit(1)
         df = pd.read_pickle(cache_file)
+        print(f"✓ Loaded cached dataset: {df.shape}")
     else:
         df = download_kaggle_dataset(force_redownload=args.force_redownload)
 
@@ -305,7 +372,16 @@ def main():
         create_summary_stats(processed_df, embeddings)
         run_test_search(processed_df, embeddings, texts)
 
-    print("\nSetup Complete! ✓")
+    print("\n" + "=" * 60)
+    print("SETUP COMPLETE! ✓")
+    print("=" * 60)
+    print("\nGenerated files:")
+    print("  - cache/kaggle_dataset.pkl (raw data)")
+    print("  - data/processed_transcripts.csv (processed data)")
+    if not args.skip_embeddings:
+        print("  - cache/embeddings.npy (embeddings)")
+        print("  - cache/embedding_texts.pkl (texts)")
+        print("  - cache/dataset_stats.json (statistics)")
 
 
 if __name__ == "__main__":
