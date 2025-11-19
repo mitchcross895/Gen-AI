@@ -42,10 +42,45 @@ def check_dependencies():
     return True
 
 
+def load_json_file(json_path):
+    """
+    Intelligently load a JSON file by inspecting its structure.
+    Handles various JSON formats including nested structures.
+    """
+    with open(json_path, 'r') as f:
+        data = json.load(f)
+    
+    # Case 1: Already a list of records
+    if isinstance(data, list):
+        return pd.DataFrame(data)
+    
+    # Case 2: Dictionary with a single key containing the records
+    if isinstance(data, dict):
+        # If it's a simple key-value dict (like speaker map), convert to records
+        if all(not isinstance(v, (list, dict)) for v in data.values()):
+            return pd.DataFrame([{"key": k, "value": v} for k, v in data.items()])
+        
+        # If one of the dict values is a list, try that
+        for key, value in data.items():
+            if isinstance(value, list):
+                df = pd.DataFrame(value)
+                df['__data_key'] = key
+                return df
+        
+        # Try to convert dict directly to DataFrame
+        try:
+            return pd.DataFrame(data)
+        except:
+            # Last resort: wrap in a list
+            return pd.DataFrame([data])
+    
+    raise ValueError(f"Unsupported JSON structure: {type(data)}")
+
+
 def download_kaggle_dataset(force_redownload=False):
     """
     Download dataset using kagglehub.dataset_download and allow
-    the user to specify a custom output directory. Supports JSON files.
+    the user to specify a custom output directory. Supports JSON and CSV files.
     """
     import kagglehub
 
@@ -72,30 +107,58 @@ def download_kaggle_dataset(force_redownload=False):
             shutil.copytree(kaggle_path, final_path, dirs_exist_ok=True)
             print(f"✓ Copied dataset to: {final_path}")
 
-        # Load JSON files
+        # Load both JSON and CSV files
         json_files = list(final_path.glob("*.json"))
-        if not json_files:
-            raise FileNotFoundError(f"No JSON files found in {final_path}")
+        csv_files = list(final_path.glob("*.csv"))
+        
+        # Skip certain metadata files
+        skip_files = {'kaggle.json', 'full-speaker-map.json'}
+        json_files = [f for f in json_files if f.name not in skip_files]
+        
+        all_files = json_files + csv_files
+        
+        if not all_files:
+            raise FileNotFoundError(f"No JSON or CSV files found in {final_path}")
 
-        print("\nFound JSON files:")
-        for jf in json_files:
-            print(f"  - {jf.name}")
+        print("\nFound data files:")
+        for f in all_files:
+            print(f"  - {f.name}")
 
         frames = []
+        
+        # Process JSON files
         for jf in json_files:
             try:
-                data = pd.read_json(jf, orient="records")
-                data["__source_file"] = jf.name
-                frames.append(data)
-                print(f"✓ Loaded {jf.name}: {data.shape[0]} rows")
+                print(f"\nProcessing {jf.name}...")
+                df = load_json_file(jf)
+                df["__source_file"] = jf.name
+                frames.append(df)
+                print(f"✓ Loaded {jf.name}: {df.shape[0]} rows, {df.shape[1]} columns")
+                print(f"  Columns: {', '.join(df.columns[:5])}{'...' if len(df.columns) > 5 else ''}")
             except Exception as e:
-                print(f"Skipping {jf.name}: {e}")
+                print(f"✗ Error loading {jf.name}: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        # Process CSV files
+        for cf in csv_files:
+            try:
+                print(f"\nProcessing {cf.name}...")
+                df = pd.read_csv(cf)
+                df["__source_file"] = cf.name
+                frames.append(df)
+                print(f"✓ Loaded {cf.name}: {df.shape[0]} rows, {df.shape[1]} columns")
+            except Exception as e:
+                print(f"✗ Error loading {cf.name}: {e}")
 
         if not frames:
-            raise ValueError("No valid JSON files could be loaded.")
+            raise ValueError("No valid JSON or CSV files could be loaded.")
 
-        df = pd.concat(frames, ignore_index=True)
+        # Combine all dataframes
+        df = pd.concat(frames, ignore_index=True, sort=False)
         print(f"\n✓ Combined dataset shape: {df.shape}")
+        print(f"✓ Total columns: {len(df.columns)}")
+        print(f"✓ Columns: {list(df.columns)}")
 
         # Cache dataframe for later processing
         cache_file = Path("cache/kaggle_dataset.pkl")
@@ -107,6 +170,8 @@ def download_kaggle_dataset(force_redownload=False):
 
     except Exception as e:
         print(f"\n✗ Error downloading dataset: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 
