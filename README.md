@@ -202,7 +202,6 @@ podcast-insight-engine/
 ├── data_processor.py        # Data preprocessing
 ├── topic_extractor.py       # Topic/entity extraction
 ├── cli.py                   # Main CLI interface
-├── run_cli.py              # Simple runner
 ├── test_system.py          # System tests
 ├── config.py               # Configuration
 ├── requirements.txt        # Dependencies
