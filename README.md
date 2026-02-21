@@ -11,8 +11,6 @@ A powerful semantic search, summarization, and analysis tool for This American L
 - **Analytics**: View statistics and insights across the entire dataset
 - **Multiple Interfaces**: CLI, interactive mode, and integration options
 
-## Quick Start
-
 ### Prerequisites
 
 - **Python 3.8+** (3.9 or 3.10 recommended)
@@ -24,12 +22,14 @@ A powerful semantic search, summarization, and analysis tool for This American L
 #### Option 1: Automated Installation (Recommended)
 
 **Linux/Mac:**
+
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
 
 **Windows:**
+
 ```cmd
 install.bat
 ```
@@ -37,11 +37,13 @@ install.bat
 #### Option 2: Manual Installation
 
 1. **Clone or download the project**
+
 ```bash
 cd podcast-insight-engine
 ```
 
 2. **Create virtual environment** (recommended)
+
 ```bash
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
@@ -50,11 +52,13 @@ venv\Scripts\activate  # Windows
 ```
 
 3. **Install dependencies**
+
 ```bash
 pip install -r requirements.txt
 ```
 
 4. **Download spaCy model**
+
 ```bash
 python -m spacy download en_core_web_sm
 ```
@@ -62,22 +66,28 @@ python -m spacy download en_core_web_sm
 ### Initial Setup
 
 #### Step 1: Get Kaggle Credentials
+
 ```bash
 python setup_kaggle.py
 ```
+
 Follow the prompts to configure your Kaggle API access.
 
 #### Step 2: Download and Process Data
+
 ```bash
 python setup_data.py
 ```
+
 This will:
+
 - Download the This American Life dataset from Kaggle
 - Process transcripts into searchable format
 - Generate semantic embeddings
 - Create search indices
 
 **Options:**
+
 - `--skip-download`: Use cached dataset
 - `--skip-embeddings`: Skip embedding generation
 - `--batch-size 16`: Reduce batch size for lower memory usage
@@ -130,13 +140,14 @@ python integrated_search.py
 
 # Then use commands like:
 > search episodes forgiveness stories
-> search segments childhood memory  
+> search segments childhood memory
 > search all family dynamics
 > similar Episode 742
 > details The Dropout
 ```
 
 **Command-line usage:**
+
 ```bash
 # Find episodes by topic
 python integrated_search.py --episodes "immigration stories"
@@ -275,16 +286,19 @@ python cli.py interactive
 If you encounter memory issues:
 
 1. **Reduce batch size** in `setup_data.py`:
+
 ```bash
 python setup_data.py --batch-size 8
 ```
 
 2. **Process fewer episodes** in `summarizer.py`:
+
 ```python
 summaries_df = summarizer.batch_summarize_episodes(df, sample_size=10)
 ```
 
 3. **Use sample mode**:
+
 ```bash
 python setup_data.py --sample
 ```
@@ -294,6 +308,7 @@ python setup_data.py --sample
 Edit the model in respective files:
 
 **Embeddings** (`embedding_generator.py`):
+
 ```python
 model = SentenceTransformer('all-MiniLM-L6-v2')  # Fast, efficient
 # or
@@ -301,9 +316,10 @@ model = SentenceTransformer('all-mpnet-base-v2')  # Better quality, slower
 ```
 
 **Summarization** (`summarizer.py`):
+
 ```python
 model_name = "facebook/bart-large-cnn"  # Default
-# or  
+# or
 model_name = "facebook/bart-large-xsum"  # More extractive
 ```
 
@@ -312,6 +328,7 @@ model_name = "facebook/bart-large-xsum"  # More extractive
 ### Issue: "No cached dataset found"
 
 **Solution**: Run the data setup first:
+
 ```bash
 python setup_data.py
 ```
@@ -319,6 +336,7 @@ python setup_data.py
 ### Issue: "Summaries file not found"
 
 **Solution**: Generate summaries:
+
 ```bash
 python summarizer.py
 ```
@@ -326,6 +344,7 @@ python summarizer.py
 ### Issue: "Out of memory"
 
 **Solutions**:
+
 1. Reduce batch size: `--batch-size 8`
 2. Process fewer episodes: edit `sample_size` parameter
 3. Use smaller model: switch to `all-MiniLM-L6-v2`
@@ -334,6 +353,7 @@ python summarizer.py
 ### Issue: "CUDA out of memory" (GPU)
 
 **Solution**: Force CPU usage:
+
 ```python
 # In summarizer.py and embedding_generator.py
 device=-1  # CPU only
@@ -342,6 +362,7 @@ device=-1  # CPU only
 ### Issue: "Kaggle API error"
 
 **Solution**: Verify credentials:
+
 ```bash
 python setup_kaggle.py
 ```
@@ -349,6 +370,7 @@ python setup_kaggle.py
 ### Issue: "Module not found"
 
 **Solution**: Reinstall dependencies:
+
 ```bash
 pip install -r requirements.txt --force-reinstall
 ```
@@ -363,14 +385,14 @@ pip install -r requirements.txt --force-reinstall
 
 ## Key Files Explained
 
-| File | Purpose | When to Use |
-|------|---------|-------------|
-| `setup_kaggle.py` | Configure Kaggle API | First time setup |
-| `setup_data.py` | Download & process data | After Kaggle setup |
-| `summarizer.py` | Generate episode summaries | For overview analysis |
-| `view_summaries.py` | Browse/export summaries | After summarization |
-| `integrated_search.py` | Search episodes & segments | Primary search tool |
-| `cli.py` | Full-featured CLI | Advanced operations |
+| File                   | Purpose                    | When to Use           |
+| ---------------------- | -------------------------- | --------------------- |
+| `setup_kaggle.py`      | Configure Kaggle API       | First time setup      |
+| `setup_data.py`        | Download & process data    | After Kaggle setup    |
+| `summarizer.py`        | Generate episode summaries | For overview analysis |
+| `view_summaries.py`    | Browse/export summaries    | After summarization   |
+| `integrated_search.py` | Search episodes & segments | Primary search tool   |
+| `cli.py`               | Full-featured CLI          | Advanced operations   |
 
 ## Output Files
 
@@ -385,6 +407,7 @@ pip install -r requirements.txt --force-reinstall
 ### Export Formats
 
 From `view_summaries.py`:
+
 - `output/summaries_export.txt` - Plain text
 - `output/summaries_export.json` - JSON
 - `output/summaries_export.md` - Markdown
@@ -393,6 +416,7 @@ From `view_summaries.py`:
 ## Contributing
 
 This is a portfolio/educational project. Feel free to:
+
 - Report issues
 - Suggest improvements
 - Fork and customize
@@ -413,12 +437,13 @@ This project is for educational purposes. The **This American Life** transcripts
 ## Support
 
 Having issues? Check:
+
 1. This README troubleshooting section
 2. Run `python test_system.py` to diagnose issues
 3. Check that all dependencies are installed
 4. Verify Python version (3.8+)
 
-##  Next Steps After Installation
+## Next Steps After Installation
 
 1. ✅ Run `python test_system.py` to verify setup
 2. ✅ Generate summaries: `python summarizer.py`
@@ -430,4 +455,4 @@ Having issues? Check:
 
 **Happy exploring!**
 
-*Built with ❤️ using Python, Transformers, and Sentence-BERT*
+_Built with ❤️ using Python, Transformers, and Sentence-BERT_
